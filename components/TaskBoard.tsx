@@ -1,7 +1,11 @@
+// components/TaskBoard.tsx
+
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import TaskModal from './TaskModal';
 import { FiSearch, FiCalendar, FiZap, FiFilter, FiShare2, FiPlus, FiClock, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Task {
   id: string;
@@ -13,98 +17,79 @@ interface Task {
   createdAt: string;
 }
 
-const initialTasks: Task[] = [
-  { id: '1', title: 'Implement User Authentication', description: 'Develop and integrate user authentication using email and password.', status: 'To do', priority: 'Urgent', deadline: '2024-08-15', createdAt: '2024-08-14T23:00:00Z' },
-  { id: '2', title: 'Design Home Page UI', description: 'Develop and integrate user authentication using email and password.', status: 'In progress', priority: 'Medium', deadline: '2024-08-15', createdAt: '2024-08-14T23:00:00Z' },
-  { id: '3', title: 'Conduct User Feedback Survey', description: 'Collect and analyze user feedback to improve app features.', status: 'In progress', priority: 'Low', deadline: '2024-08-05', createdAt: '2024-08-05T21:00:00Z' },
-  { id: '4', title: 'Integrate Cloud Storage', description: 'Enable cloud storage for note backup and synchronization.', status: 'Under review', priority: 'Urgent', deadline: '2024-08-20', createdAt: '2024-08-18T22:00:00Z' },
-  { id: '5', title: 'Test Cross-browser Compatibility', description: 'Ensure the app works seamlessly across different web browsers.', status: 'Finished', priority: 'Medium', deadline: '2024-07-30', createdAt: '2024-07-26T20:00:00Z' },
-];
-
 const TaskBoard: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<Task['status'] | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
+    if (user) {
+      fetchTasks();
     }
-  }, []);
+  }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
+  const fetchTasks = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/tasks', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setTasks(response.data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  };
+
+  const handleSaveTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    try {
+      if (editingTask) {
+        const response = await axios.put(`http://localhost:5000/api/tasks/${editingTask.id}`, taskData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        setTasks(tasks.map(task => task.id === editingTask.id ? response.data : task));
+      } else {
+        const response = await axios.post('http://localhost:5000/api/tasks', taskData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        setTasks([...tasks, response.data]);
+      }
+      setIsModalOpen(false);
+      setEditingTask(null);
+      setSelectedColumn(null);
+    } catch (error) {
+      console.error('Error saving task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/tasks/${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setTasks(tasks.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
 
   const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
-    if (!destination) return;
-
-    const newTasks = Array.from(tasks);
-    const [reorderedItem] = newTasks.splice(source.index, 1);
-    reorderedItem.status = destination.droppableId as Task['status'];
-    newTasks.splice(destination.index, 0, reorderedItem);
-
-    setTasks(newTasks);
-  };
-
-  const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    if (editingTask) {
-      const updatedTasks = tasks.map(task =>
-        task.id === editingTask.id ? { ...task, ...taskData } : task
-      );
-      setTasks(updatedTasks);
-    } else {
-      const newTask: Task = {
-        ...taskData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-      };
-      setTasks([...tasks, newTask]);
-    }
-    setIsModalOpen(false);
-    setEditingTask(null);
-    setSelectedColumn(null);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
-  };
-
-  const getTimeAgo = (date: string) => {
-    const now = new Date();
-    const taskDate = new Date(date);
-    const diffHours = Math.floor((now.getTime() - taskDate.getTime()) / (1000 * 60 * 60));
-    
-    if (diffHours < 24) return `${diffHours} hr ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} days ago`;
+    // Implement drag and drop logic here
   };
 
   const columns: Task['status'][] = ['To do', 'In progress', 'Under review', 'Finished'];
 
   return (
     <div className="task-board">
-      <h1>Good morning, Joe!</h1>
-      <div className="feature-cards">
-        <div className="feature-card">
-          <img src="/introducing-tags.png" alt="Introducing tags" />
-          <h3>Introducing tags</h3>
-          <p>Easily categorize and find your notes by adding tags. Keep your workspace clutter-free and efficient.</p>
-        </div>
-        <div className="feature-card">
-          <img src="/share-notes.png" alt="Share Notes Instantly" />
-          <h3>Share Notes Instantly</h3>
-          <p>Effortlessly share your notes with others via email or link. Enhance collaboration with quick sharing options.</p>
-        </div>
-        <div className="feature-card">
-          <img src="/access-anywhere.png" alt="Access Anywhere" />
-          <h3>Access Anywhere</h3>
-          <p>Sync your notes across all devices. Stay productive whether you're on your phone, tablet, or computer.</p>
-        </div>
-      </div>
+      <h1>Good morning, {user?.email}!</h1>
       <div className="action-bar">
         <div className="search-container">
           <FiSearch className="search-icon" />
@@ -158,7 +143,6 @@ const TaskBoard: React.FC = () => {
                                 <FiClock /> {task.deadline}
                               </span>
                             </div>
-                            <span className="time-ago">{getTimeAgo(task.createdAt)}</span>
                             <div className="task-actions">
                               <button onClick={() => {
                                 setEditingTask(task);
