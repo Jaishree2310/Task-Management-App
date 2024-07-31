@@ -178,10 +178,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect("mongodb://127.0.0.1:27017/taskmanager")
   .then(() => console.log('Connected to MongoDB'))
   .catch((error: any) => console.error('MongoDB connection error:', error));
 

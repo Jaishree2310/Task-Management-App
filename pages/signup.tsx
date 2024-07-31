@@ -87,7 +87,7 @@ const Signup: React.FC = () => {
     setError('');
     try {
       await signup(email, password, fullName);
-      router.push('/taskboard');
+      router.push('/dashboard');
     } catch (error) {
       console.log(error);
       setError('Failed to create an account. Please try again.');
