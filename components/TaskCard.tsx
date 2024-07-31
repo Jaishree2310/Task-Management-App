@@ -50,7 +50,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ title, description, priority, deadl
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="task-meta">
-        <span className={`priority ${priority.toLowerCase()}`}>{priority}</span>
+        <span className={`priority ${priority}`}>{priority}</span>
         <span className="deadline"><FiClock /> {deadline}</span>
       </div>
     </div>

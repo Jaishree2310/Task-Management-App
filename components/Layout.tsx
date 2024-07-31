@@ -1,15 +1,15 @@
 import React from 'react';
 import Sidebar from './Sidebar';
-import Header from './Header';
+import TaskBoard from './TaskBoard';
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const Layout: React.FC = () => {
   return (
-    <div className="app-container">
+    <div className="layout">
       <Sidebar />
-      <div className="main-content">
-        <Header />
-        {children}
-      </div>
+      <main className="main-content">
+    
+        <TaskBoard />
+      </main>
     </div>
   );
 };
